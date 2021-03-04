@@ -1,0 +1,33 @@
+- name: loop on users
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    uid: "{{ item.uid }}"
+    groups: wheel
+    append: yes
+    shell: /bin/bash
+    createhome: yes
+    password: "{{ passwords.user_password | password_hash('sha512') }}"
+  when: "item.uid | string | regex_search('^1') and inventory_hostname in groups.webservers"
+
+- name: loop on users 2
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    uid: "{{ item.uid }}"
+    groups: wheel
+    append: yes
+    shell: /bin/bash
+    createhome: yes
+    password: "{{ passwords.user_password | password_hash('sha512') }}"
+  when: "item.uid | string | regex_search('^2') and inventory_hostname in groups.database"
+
+- name: create ssh folder
+  file:
+    path: "/home/{{ item.username }}/.ssh"
+    state: directory
+  when: "(item.uid | string | regex_search('^1') and inventory_hostname in groups.webservers) or (item.uid | string | regex_search('^2') and inventory_hostname in groups.database)"
+
+- name: copy ssh key
+  copy:
+    src: "/home/automation/.ssh/id_rsa.pub"
+    dest: "/home/{{ item.username }}/.ssh/authorized_keys"
+  when:  "(item.uid | string | regex_search('^1') and inventory_hostname in groups.webservers) or (item.uid | string | regex_search('^2') and inventory_hostname in groups.database)"

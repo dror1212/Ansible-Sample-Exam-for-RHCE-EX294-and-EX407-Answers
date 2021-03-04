@@ -1,0 +1,24 @@
+- name: facts
+  hosts: database
+  become: yes
+
+  tasks:
+    - name: Create directory for ansible custom facts
+      ansible.builtin.file:
+        state: directory
+        path: /etc/ansible/facts.d/
+
+    - name: Create new facts
+      copy:
+        content: |
+          {
+            "server_role" : "mysql"
+          }
+        dest: /etc/ansible/facts.d/custom.fact
+
+    - name: Re-read facts after adding custom fact
+      ansible.builtin.setup:
+
+    - name: Print fact
+      debug:
+        msg: '"{{ ansible_local.custom.server_role }}"'

@@ -1,0 +1,10 @@
+- name: create webswevers users with passwords
+  hosts: webservers
+  become: yes
+  roles:
+  - role: rhel-system-roles.selinux
+    vars:
+      selinux_policy: targeted
+      selinux_state: enforcing      
+      selinux_booleans:
+        - { name: 'httpd_can_network_connect', state: 'on', persistent: 'yes' }

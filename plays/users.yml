@@ -1,0 +1,10 @@
+- name: create webswevers users with passwords
+  hosts: all
+  become: yes
+  vars_files: 
+    - vars/user_list.yml
+    - secret.yml
+  tasks:
+    - name: start creating
+      include_tasks: users_help.yml
+      loop: "{{ users }}"

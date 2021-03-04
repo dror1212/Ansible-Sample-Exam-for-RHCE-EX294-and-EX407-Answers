@@ -1,0 +1,19 @@
+- name: haproxy
+  hosts: proxy
+  become: yes
+
+  tasks:
+  - name: Configure incoming traffic http
+    firewalld:
+      port: 80/tcp
+      permanent: yes
+      state: enabled
+
+  roles:
+  - role: geerlingguy.haproxy
+    vars:
+      haproxy_backend_servers:
+      - name: app1
+        address: 10.0.0.3:80
+      - name: app2
+        address: 10.0.0.4:80

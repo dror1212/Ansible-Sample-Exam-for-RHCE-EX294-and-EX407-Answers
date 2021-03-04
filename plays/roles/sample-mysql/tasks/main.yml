@@ -1,0 +1,128 @@
+- name: create primary partition
+  community.general.parted:
+    device: /dev/sdb
+    number: 1
+    state: present
+    part_end: 800MB
+    fs_type: xfs
+
+- name: install yum lvm2
+  yum:
+    name: lvm2
+    state: latest
+
+    #- name: Add phisical volume
+    #shell:
+    #cmd: "pvcreate /dev/sdb1"
+
+- name: create volume group
+  community.general.lvg:
+    vg: vg_database
+    pvs: /dev/sdb1
+
+- name: create lvm
+  community.general.lvol:
+    vg: vg_database
+    lv: lv_mysql
+    size: 512
+
+- name: Create an XFS filesystem 
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_database/lv_mysql
+
+- name: Create mounting point
+  file:
+    path: /mnt/mysql_backups
+    state: directory
+
+- name: mount the lvm
+  ansible.posix.mount:
+    path: /mnt/mysql_backups
+    src: /dev/vg_database/lv_mysql
+    state: present
+    fstype: xfs
+
+- name: enable downloading mysql on centos
+  shell:
+    cmd: "dnf module reset mysql -y"
+
+- name: enable downloading mysql on centos 2
+  shell:
+    cmd: "dnf module disable mysql -y"
+        
+- name: install yum mysql-community-server
+  yum:
+    name: mysql-community-server
+    state: latest
+
+    #- name: Setup selinux to allow mysql port port
+    #community.general.seport:
+    #ports: "3306"
+    #proto: "tcp"
+    #setype: "mysql_port_t"
+    #state: "present"
+
+- name: down pip
+  yum:
+          name: python3-pip
+          state: present
+    
+- name: pip
+  pip:
+    name: PyMySQL
+
+    #- name: Change mysql root user password
+    #mysql_user:
+    #login_host: 'localhost'
+    #login_user: 'root'
+    #login_password: ''
+    #name: 'root'
+    #password: '{{ passwords.database_password }}'
+    #state: present
+
+- name: Start and enable mysqld
+  ansible.builtin.service:
+    name: mysqld
+    state: started
+    enabled: yes
+
+- name: Check for a temp password
+  become: yes
+  shell:
+    cmd: "cat /var/log/mysqld.log | grep 'A temporary password is generated for root' | tail -1 | awk -F' ' '{print $NF}'"
+  register: temp_database_password
+
+- name: Remove temp password from the log file
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /var/log/mysqld.log
+    state: absent
+    regexp: 'A\stemporary\spassword\sis\sgenerated\sfor\sroot'
+
+- name: Execute command in mysql shell and set new password
+  become: yes
+  shell: 'mysql -e "SET GLOBAL validate_password_policy=LOW; SET PASSWORD = PASSWORD(''{{  passwords.database_password  }}'');" --connect-expired-password -uroot -p"{{ temp_database_password.stdout }}"'
+  when: temp_database_password.stdout != ""
+
+- name: Set root password 
+  become: yes
+  mysql_user:
+    name: root
+    password: "{{ passwords.database_password }}"
+    check_implicit_admin: true
+  when: temp_database_password.stdout == ""
+
+- name: Create /etc/my.cnf
+  template:
+    src: ../templates/my.cnf.j2
+    dest: /root/my.cnf
+    owner: root
+    group: root
+    mode: 0644
+    backup: true
+
+- name: Restart the MySQL service
+  service:
+    name: mysqld
+    state: restarted

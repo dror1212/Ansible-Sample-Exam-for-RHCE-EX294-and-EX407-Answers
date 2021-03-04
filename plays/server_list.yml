@@ -1,0 +1,27 @@
+- name: Create and Use Templates to Create Customised Configuration Files
+  hosts: database
+  become: yes
+
+  tasks:
+  - name: copy template
+    template:
+      src: /home/automation/plays/templates/server_list.j2
+      dest: /etc/server_list.txt
+      owner: automation
+      group: automation
+      mode: '0600'
+
+  - name: Install selinux utils
+    yum:
+      name: 
+        - policycoreutils-*
+        - setools-*
+        - setroubleshoot*
+      state: present
+
+  - name: Set up SELinux label
+    sefcontext:
+      target: '/etc/server_list.txt'
+      setype: 'net_conf_t'
+      reload: yes
+      state: present

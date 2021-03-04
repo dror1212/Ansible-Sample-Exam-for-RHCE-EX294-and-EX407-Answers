@@ -1,0 +1,20 @@
+- name: sshd configure
+  hosts: all
+  become: yes
+  tasks:
+
+  - name: banner
+    shell:
+      cmd: "echo Banner /etc/motd >> /etc/ssh/sshd_config"
+
+  - name: forwarding
+    shell:
+      cmd: "echo X11Forwarding no >> /etc/ssh/sshd_config"
+
+  - name: authTries
+    shell:
+      cmd: "echo MaxAuthTries 3 >> /etc/ssh/sshd_config"
+  - name: Stop and Start ssh
+    service:
+      name: sshd
+      state: restarted

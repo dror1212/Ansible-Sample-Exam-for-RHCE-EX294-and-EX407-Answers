@@ -1,0 +1,12 @@
+hosts:
+  children:
+    proxy:
+      hosts:
+        10.0.0.2:
+    webservers:
+      hosts:
+        10.0.0.3:
+        10.0.0.4:
+    database:
+      hosts:
+        10.0.0.5:

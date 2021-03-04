@@ -1,0 +1,21 @@
+- name: packeges download
+  hosts: all
+  become: yes
+  tasks:
+    - name: tcpdump
+      package:
+        name: tcpdump
+        state: present
+      when: "inventory_hostname in groups.proxy"
+        
+    - name: mailx
+      package:
+        name: mailx
+        state: present
+      when: "inventory_hostname in groups.proxy or inventory_hostname in groups.database"
+
+    - name: lsof
+      package:
+        name: lsof
+        state: present
+      when: "inventory_hostname in groups.database"
